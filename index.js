@@ -12,7 +12,7 @@ export default class RBush {
         return this._all(this.data, []);
     }
 
-    search(bbox) {
+    search(bbox, cb) {
         let node = this.data;
         const result = [];
 
@@ -27,8 +27,13 @@ export default class RBush {
                 const childBBox = node.leaf ? toBBox(child) : child;
 
                 if (intersects(bbox, childBBox)) {
-                    if (node.leaf) result.push(child);
-                    else if (contains(bbox, childBBox)) this._all(child, result);
+                    if (node.leaf) {
+                        result.push(child);
+                        if (typeof cb === 'function') {
+                            cb(child);
+                        }
+                    }
+                    else if (contains(bbox, childBBox)) this._all(child, result, cb);
                     else nodesToSearch.push(child);
                 }
             }
@@ -167,10 +172,17 @@ export default class RBush {
         return this;
     }
 
-    _all(node, result) {
+    _all(node, result, cb) {
         const nodesToSearch = [];
         while (node) {
-            if (node.leaf) result.push(...node.children);
+            if (node.leaf) {
+                node.children.forEach(child => {
+                    result.push(child);
+                    if (typeof cb === 'function') {
+                        cb(child);
+                    }
+                });
+            }
             else nodesToSearch.push(...node.children);
 
             node = nodesToSearch.pop();
